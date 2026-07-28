@@ -176,7 +176,10 @@ function handleMessage(ws, raw) {
     }
     room.sockets.set('A', ws);
     room.inviteToken = newInviteToken();
-    if (!room.sockets.has('B')) {
+    if (room.sockets.has('B')) {
+      room.state = createGame();
+      room.state.phase = 'ready';
+    } else {
       room.state = createGame();
     }
     send(ws, assignedPayload('A'));
@@ -253,6 +256,10 @@ function handleMessage(ws, raw) {
   }
 
   if (type === 'restart') {
+    if (room.state.phase !== 'ended') {
+      send(ws, { type: 'error', message: '当前不能再来一局' });
+      return;
+    }
     if (!room.sockets.has('A') || !room.sockets.has('B')) {
       room.state = createGame();
       broadcastState();
@@ -309,7 +316,7 @@ function onClose(ws) {
     room.state = createGame();
     room.inviteToken = null;
   } else {
-    room.state.phase = 'waiting';
+    room.state = createGame();
     broadcastState();
   }
 }
