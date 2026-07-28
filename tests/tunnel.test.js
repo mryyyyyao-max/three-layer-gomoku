@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { startQuickTunnel } from '../server/tunnel.js';
+import { isQuickTunnelUrl, startQuickTunnel } from '../server/tunnel.js';
+
+test('isQuickTunnelUrl accepts only HTTPS trycloudflare hostnames', () => {
+  assert.equal(isQuickTunnelUrl('https://ready-otter.trycloudflare.com'), true);
+  assert.equal(isQuickTunnelUrl('http://ready-otter.trycloudflare.com'), false);
+  assert.equal(isQuickTunnelUrl('https://ready-otter.trycloudflare.com.evil.test'), false);
+  assert.equal(isQuickTunnelUrl('not a URL'), false);
+});
 
 test('startQuickTunnel soft-fails with a no-op stop when the download fails', async () => {
   const originalFetch = globalThis.fetch;

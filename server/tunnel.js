@@ -74,10 +74,17 @@ async function ensureBinary() {
     throw new Error('cloudflared download returned an empty file');
   }
 
-  await fs.promises.mkdir(path.dirname(binaryPath), { recursive: true });
-  await fs.promises.writeFile(binaryPath, contents, { mode: 0o755 });
-  if (process.platform !== 'win32') {
-    await fs.promises.chmod(binaryPath, 0o755);
+  const temporaryPath = `${binaryPath}.tmp`;
+  try {
+    await fs.promises.mkdir(path.dirname(binaryPath), { recursive: true });
+    await fs.promises.writeFile(temporaryPath, contents, { mode: 0o755 });
+    if (process.platform !== 'win32') {
+      await fs.promises.chmod(temporaryPath, 0o755);
+    }
+    await fs.promises.rename(temporaryPath, binaryPath);
+  } catch (error) {
+    await fs.promises.unlink(temporaryPath).catch(() => {});
+    throw error;
   }
   return binaryPath;
 }
@@ -86,31 +93,61 @@ function noOpTunnel() {
   return { stop() {} };
 }
 
+export function isQuickTunnelUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname.endsWith('.trycloudflare.com');
+  } catch {
+    return false;
+  }
+}
+
+async function removeBinary() {
+  await fs.promises.unlink(binaryPath).catch(() => {});
+}
+
 /**
  * Starts Cloudflare's ephemeral quick tunnel without making local play depend on it.
  * @param {{ port: number, onUrl: (url: string) => void }} options
  * @returns {Promise<{ stop: () => void }>}
  */
 export async function startQuickTunnel({ port, onUrl }) {
+  let executable;
+  let spawned = false;
   try {
-    const executable = await ensureBinary();
+    executable = await ensureBinary();
     const child = spawn(
       executable,
       ['tunnel', '--url', `http://127.0.0.1:${port}`],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
+      { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true },
     );
     await new Promise((resolve, reject) => {
       child.once('spawn', resolve);
       child.once('error', reject);
     });
+    spawned = true;
     let stopped = false;
     let published = false;
     let output = '';
 
     const stop = () => {
-      if (!stopped && !child.killed) {
-        stopped = true;
-        child.kill();
+      if (stopped) return;
+      stopped = true;
+      child.stdout.destroy();
+      child.stderr.destroy();
+
+      let killed = false;
+      try {
+        killed = child.kill();
+      } catch {
+        killed = false;
+      }
+      if (process.platform === 'win32' && !killed && child.pid) {
+        const taskkill = spawn('taskkill', ['/T', '/F', '/PID', String(child.pid)], {
+          stdio: 'ignore',
+          windowsHide: true,
+        });
+        taskkill.on('error', () => {});
       }
     };
 
@@ -118,7 +155,7 @@ export async function startQuickTunnel({ port, onUrl }) {
       output = `${output}${chunk.toString()}`.slice(-4096);
       if (published) return;
       const match = output.match(TRY_CLOUDFLARE_URL);
-      if (!match) return;
+      if (!match || !isQuickTunnelUrl(match[0])) return;
       published = true;
       try {
         onUrl(match[0]);
@@ -132,6 +169,7 @@ export async function startQuickTunnel({ port, onUrl }) {
     child.on('error', (error) => {
       if (!stopped) {
         console.error('  Cloudflare tunnel could not start:', error.message);
+        void removeBinary();
       }
     });
     child.on('exit', (code, signal) => {
@@ -142,6 +180,9 @@ export async function startQuickTunnel({ port, onUrl }) {
 
     return { stop };
   } catch (error) {
+    if (executable && !spawned) {
+      await removeBinary();
+    }
     console.error('  Cloudflare tunnel unavailable; local play remains available:', error.message);
     return noOpTunnel();
   }
