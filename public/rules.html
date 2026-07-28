@@ -9,10 +9,21 @@
 </head>
 <body class="rules-page">
   <header class="rules-top">
-    <a class="rules-back" href="/">← 返回游戏</a>
+    <a class="rules-back" id="rules-back" href="/">← 返回游戏</a>
     <h1>三层五子棋 · 规则</h1>
   </header>
   <main id="rules-main" class="rules-main"></main>
+  <script>
+    (function () {
+      const back = document.getElementById('rules-back');
+      try {
+        const ref = document.referrer ? new URL(document.referrer) : null;
+        if (ref && ref.origin === location.origin && !ref.pathname.endsWith('/rules.html')) {
+          back.href = ref.pathname + ref.search + ref.hash || '/';
+        }
+      } catch (_) { /* keep / */ }
+    })();
+  </script>
   <script type="module" src="/rules.js?v=2"></script>
 </body>
 </html>
