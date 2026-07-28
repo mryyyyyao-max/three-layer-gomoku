@@ -1,6 +1,6 @@
-import { drawBoard } from './render.js?v=6';
-import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=6';
-import { isLegalDestHeight } from '/shared/rules.js?v=6';
+import { drawBoard } from './render.js?v=7';
+import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=7';
+import { isLegalDestHeight } from '/shared/rules.js?v=7';
 
 const lobbyEl = document.getElementById('lobby');
 const gameEl = document.getElementById('game');

@@ -44,6 +44,27 @@ body {
   font-size: 0.95rem;
 }
 
+.nav-links {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+}
+
+.nav-links a,
+.rules-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-links a:hover,
+.rules-link:hover {
+  text-decoration: underline;
+}
+
+.rules-link {
+  margin-left: auto;
+}
+
 .lobby {
   margin-top: 1.5rem;
   padding: 1.25rem;

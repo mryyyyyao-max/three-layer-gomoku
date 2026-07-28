@@ -1,0 +1,20 @@
+.rules-page { max-width: 720px; margin: 0 auto; padding: 16px; }
+.rules-top { margin-bottom: 24px; }
+.rules-back { color: inherit; }
+.rules-chapter { margin-bottom: 40px; }
+.rules-chapter h2 { font-size: 1.25rem; margin: 0 0 6px; }
+.rules-blurb { opacity: 0.85; margin: 0 0 12px; }
+.rules-canvas-wrap {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1.1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #d4c7ae;
+}
+.rules-canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+.rules-chapter.is-bad .rules-canvas-wrap { outline: 2px solid rgba(160,40,40,0.55); }
+.rules-chapter.is-ok .rules-canvas-wrap { outline: 2px solid rgba(40,120,60,0.45); }
+@media (prefers-reduced-motion: reduce) {
+  .rules-canvas-wrap { outline-color: transparent; }
+}

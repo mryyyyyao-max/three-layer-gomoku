@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>三层五子棋</title>
-  <link rel="stylesheet" href="/style.css?v=6" />
+  <link rel="stylesheet" href="/style.css?v=7" />
 </head>
 <body>
   <main class="app">
     <header class="header">
       <h1>三层五子棋</h1>
       <p class="subtitle">点空位落子 · 点己方棋子移动</p>
+      <p class="nav-links"><a href="/rules.html">规则</a></p>
     </header>
 
     <section id="lobby" class="lobby">
@@ -40,6 +41,7 @@
         <div class="status-row">
           <span id="phase-label">—</span>
           <span id="you-label"></span>
+          <a href="/rules.html" class="rules-link">规则</a>
         </div>
         <div class="status-row">
           <span id="current-label">—</span>
@@ -61,6 +63,6 @@
       </div>
     </section>
   </main>
-  <script type="module" src="/client.js?v=6"></script>
+  <script type="module" src="/client.js?v=7"></script>
 </body>
 </html>
