@@ -15,6 +15,7 @@ export function buildChapters() {
       title: '棋盘与棋子',
       blurb: '六边形点位；深色先手、浅色后手；同一点可叠到三层。',
       frames: [
+        { cells: {}, holdMs: 600 },
         { cells: cellMap([[2, 0, ['A']]]), holdMs: 900 },
         { cells: cellMap([[2, 0, ['A', 'B']]]), holdMs: 900 },
         { cells: cellMap([[2, 0, ['A', 'B', 'A']]]), holdMs: 1200 },
@@ -31,6 +32,12 @@ export function buildChapters() {
         {
           cells: cellMap([[3, 0, ['A']], [-3, 0, ['B']], [-3, 3, ['B']]]),
           holdMs: 800,
+        },
+        {
+          cells: cellMap([[3, 0, ['A']], [-3, 0, ['B']], [-3, 3, ['B']]]),
+          highlights: [{ q: 2, r: 0, color: 'rgba(180,40,40,0.35)' }],
+          holdMs: 900,
+          flash: 'bad',
         },
         {
           cells: cellMap([[3, 0, ['A']], [-3, 0, ['B']], [-3, 3, ['B']]]),
