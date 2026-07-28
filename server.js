@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import os from 'node:os';
 import { createGame, startMatch, applyPlace, applyMove } from './shared/rules.js';
+import { newInviteToken, swapSeatMap } from './server/room.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 3000;
@@ -95,7 +96,26 @@ function handleHttp(req, res) {
 const room = {
   sockets: new Map(),
   state: createGame(),
+  inviteToken: null,
+  publicBase: null,
 };
+
+function buildInviteUrl() {
+  if (!room.inviteToken) return null;
+  const base = (room.publicBase || primaryLanHint()).replace(/\/$/, '');
+  return `${base}/?invite=${room.inviteToken}`;
+}
+
+function assignedPayload(seat) {
+  return {
+    type: 'assigned',
+    seat,
+    lanHint: primaryLanHint(),
+    inviteToken: room.inviteToken,
+    inviteUrl: buildInviteUrl(),
+    publicBase: room.publicBase,
+  };
+}
 
 function send(ws, msg) {
   if (ws.readyState === 1) {
@@ -116,8 +136,20 @@ function publicState(state) {
 
 function broadcastState() {
   const state = publicState(room.state);
+  const seatsOccupied = {
+    A: room.sockets.has('A'),
+    B: room.sockets.has('B'),
+  };
+  const inviteUrl = buildInviteUrl();
   for (const [seat, ws] of room.sockets) {
-    send(ws, { type: 'state', state, you: seat });
+    send(ws, {
+      type: 'state',
+      state,
+      you: seat,
+      seatsOccupied,
+      inviteUrl,
+      publicBase: room.publicBase,
+    });
   }
 }
 
@@ -143,10 +175,11 @@ function handleMessage(ws, raw) {
       return;
     }
     room.sockets.set('A', ws);
+    room.inviteToken = newInviteToken();
     if (!room.sockets.has('B')) {
       room.state = createGame();
     }
-    send(ws, { type: 'assigned', seat: 'A', lanHint: primaryLanHint() });
+    send(ws, assignedPayload('A'));
     broadcastState();
     return;
   }
@@ -164,33 +197,76 @@ function handleMessage(ws, raw) {
       send(ws, { type: 'error', message: '已在房间中' });
       return;
     }
+    if (msg.inviteToken != null && msg.inviteToken !== room.inviteToken) {
+      send(ws, { type: 'error', message: '邀请链接无效' });
+      return;
+    }
     room.sockets.set('B', ws);
-    room.state = startMatch(room.state);
-    send(ws, { type: 'assigned', seat: 'B', lanHint: primaryLanHint() });
+    room.state.phase = 'ready';
+    send(ws, assignedPayload('B'));
     broadcastState();
     return;
   }
 
-  if (type === 'place' || type === 'move' || type === 'restart') {
+  if (
+    type === 'place' ||
+    type === 'move' ||
+    type === 'restart' ||
+    type === 'swapSeats' ||
+    type === 'start'
+  ) {
     if (!existingSeat) {
       send(ws, { type: 'error', message: '未入座' });
       return;
     }
   }
 
-  if (type === 'restart') {
-    if (!room.sockets.has('A') || !room.sockets.has('B')) {
-      send(ws, { type: 'error', message: '房间未满员' });
+  if (type === 'swapSeats') {
+    if (room.state.phase !== 'ready') {
+      send(ws, { type: 'error', message: '当前不能交换座位' });
       return;
     }
-    room.state = startMatch(createGame());
+    if (!room.sockets.has('A') || !room.sockets.has('B')) {
+      send(ws, { type: 'error', message: '需要双方在座' });
+      return;
+    }
+    room.sockets = swapSeatMap(room.sockets);
+    broadcastState();
+    for (const [seat, sock] of room.sockets) {
+      send(sock, assignedPayload(seat));
+    }
+    return;
+  }
+
+  if (type === 'start') {
+    if (room.state.phase !== 'ready') {
+      send(ws, { type: 'error', message: '当前不能开始' });
+      return;
+    }
+    if (!room.sockets.has('A') || !room.sockets.has('B')) {
+      send(ws, { type: 'error', message: '需要双方在座' });
+      return;
+    }
+    room.state = startMatch(room.state);
+    broadcastState();
+    return;
+  }
+
+  if (type === 'restart') {
+    if (!room.sockets.has('A') || !room.sockets.has('B')) {
+      room.state = createGame();
+      broadcastState();
+      return;
+    }
+    room.state = createGame();
+    room.state.phase = 'ready';
     broadcastState();
     return;
   }
 
   if (type === 'place' || type === 'move') {
     const phase = room.state.phase;
-    if (phase === 'waiting' || phase === 'ended') {
+    if (phase === 'waiting' || phase === 'ready' || phase === 'ended') {
       send(ws, { type: 'error', message: '当前阶段不可操作' });
       return;
     }
@@ -231,6 +307,10 @@ function onClose(ws) {
   room.sockets.delete(seat);
   if (!room.sockets.has('A') && !room.sockets.has('B')) {
     room.state = createGame();
+    room.inviteToken = null;
+  } else {
+    room.state.phase = 'waiting';
+    broadcastState();
   }
 }
 
