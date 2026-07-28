@@ -4,9 +4,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import os from 'node:os';
-import { createGame, startMatch, applyPlace, applyMove } from './shared/rules.js';
+import { createGame, startMatch, applyPlace, applyMove, clone } from './shared/rules.js';
 import { newInviteToken, swapSeatMap } from './server/room.js';
 import { startQuickTunnel } from './server/tunnel.js';
+
+const TAUNT_TEXTS = new Set(['你这个臭棋篓子', '我等的花儿都谢了']);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 3000;
@@ -99,7 +101,28 @@ const room = {
   state: createGame(),
   inviteToken: null,
   publicBase: null,
+  /** @type {ReturnType<typeof clone>[]} snapshots before each place/move */
+  history: [],
+  /** @type {ReturnType<typeof clone>[]} frames for end-game scrubbing (after each change) */
+  replay: [],
+  undoPleaFrom: null,
 };
+
+function clearMatchTracks() {
+  room.history = [];
+  room.replay = [];
+  room.undoPleaFrom = null;
+}
+
+function pushReplayFrame(state) {
+  room.replay.push(clone(state));
+}
+
+function broadcastAll(msg) {
+  for (const ws of room.sockets.values()) {
+    send(ws, msg);
+  }
+}
 
 function buildInviteUrl() {
   if (!room.inviteToken) return null;
@@ -142,15 +165,20 @@ function broadcastState() {
     B: room.sockets.has('B'),
   };
   const inviteUrl = buildInviteUrl();
+  const payload = {
+    type: 'state',
+    state,
+    seatsOccupied,
+    inviteUrl,
+    publicBase: room.publicBase,
+    undoPleaFrom: room.undoPleaFrom,
+    canUndo: room.history.length > 0,
+  };
+  if (room.state.phase === 'ended') {
+    payload.replay = room.replay.map((s) => publicState(s));
+  }
   for (const [seat, ws] of room.sockets) {
-    send(ws, {
-      type: 'state',
-      state,
-      you: seat,
-      seatsOccupied,
-      inviteUrl,
-      publicBase: room.publicBase,
-    });
+    send(ws, { ...payload, you: seat });
   }
 }
 
@@ -177,6 +205,7 @@ function handleMessage(ws, raw) {
     }
     room.sockets.set('A', ws);
     room.inviteToken = newInviteToken();
+    clearMatchTracks();
     if (room.sockets.has('B')) {
       room.state = createGame();
       room.state.phase = 'ready';
@@ -217,12 +246,68 @@ function handleMessage(ws, raw) {
     type === 'move' ||
     type === 'restart' ||
     type === 'swapSeats' ||
-    type === 'start'
+    type === 'start' ||
+    type === 'taunt' ||
+    type === 'undoRequest' ||
+    type === 'undoAccept'
   ) {
     if (!existingSeat) {
       send(ws, { type: 'error', message: '未入座' });
       return;
     }
+  }
+
+  if (type === 'taunt') {
+    const text = typeof msg.text === 'string' ? msg.text : '';
+    if (!TAUNT_TEXTS.has(text)) {
+      send(ws, { type: 'error', message: '不能发送这条' });
+      return;
+    }
+    broadcastAll({ type: 'taunt', text, from: existingSeat });
+    return;
+  }
+
+  if (type === 'undoRequest') {
+    const phase = room.state.phase;
+    if (phase !== 'layout' && phase !== 'action') {
+      send(ws, { type: 'error', message: '现在不能悔棋' });
+      return;
+    }
+    if (room.history.length === 0) {
+      send(ws, { type: 'error', message: '还没有可以悔的棋' });
+      return;
+    }
+    if (room.undoPleaFrom) {
+      send(ws, { type: 'error', message: '已有悔棋请求进行中' });
+      return;
+    }
+    room.undoPleaFrom = existingSeat;
+    broadcastAll({ type: 'undoPlea', from: existingSeat });
+    broadcastState();
+    return;
+  }
+
+  if (type === 'undoAccept') {
+    if (!room.undoPleaFrom) {
+      send(ws, { type: 'error', message: '没有悔棋请求' });
+      return;
+    }
+    if (existingSeat === room.undoPleaFrom) {
+      send(ws, { type: 'error', message: '要对方点同意' });
+      return;
+    }
+    if (room.history.length === 0) {
+      room.undoPleaFrom = null;
+      send(ws, { type: 'error', message: '还没有可以悔的棋' });
+      broadcastState();
+      return;
+    }
+    room.state = room.history.pop();
+    if (room.replay.length > 0) room.replay.pop();
+    room.undoPleaFrom = null;
+    broadcastAll({ type: 'undoDone', by: existingSeat });
+    broadcastState();
+    return;
   }
 
   if (type === 'swapSeats') {
@@ -251,7 +336,9 @@ function handleMessage(ws, raw) {
       send(ws, { type: 'error', message: '需要双方在座' });
       return;
     }
+    clearMatchTracks();
     room.state = startMatch(room.state);
+    pushReplayFrame(room.state);
     broadcastState();
     return;
   }
@@ -261,6 +348,7 @@ function handleMessage(ws, raw) {
       send(ws, { type: 'error', message: '当前不能再来一局' });
       return;
     }
+    clearMatchTracks();
     if (!room.sockets.has('A') || !room.sockets.has('B')) {
       room.state = createGame();
       broadcastState();
@@ -283,6 +371,7 @@ function handleMessage(ws, raw) {
       return;
     }
 
+    const before = clone(room.state);
     let result;
     if (type === 'place') {
       result = applyPlace(room.state, existingSeat, msg.q, msg.r);
@@ -301,7 +390,10 @@ function handleMessage(ws, raw) {
       send(ws, { type: 'error', message: result.error });
       return;
     }
+    room.history.push(before);
+    room.undoPleaFrom = null;
     room.state = result.state;
+    pushReplayFrame(room.state);
     broadcastState();
     return;
   }
@@ -313,6 +405,7 @@ function onClose(ws) {
   const seat = seatOf(ws);
   if (!seat) return;
   room.sockets.delete(seat);
+  clearMatchTracks();
   if (!room.sockets.has('A') && !room.sockets.has('B')) {
     room.state = createGame();
     room.inviteToken = null;

@@ -1,6 +1,6 @@
-import { drawBoard } from './render.js?v=8';
-import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=8';
-import { isLegalDestHeight } from '/shared/rules.js?v=8';
+import { drawBoard } from './render.js?v=10';
+import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=10';
+import { isLegalDestHeight } from '/shared/rules.js?v=10';
 
 const lobbyEl = document.getElementById('lobby');
 const gameEl = document.getElementById('game');
@@ -22,6 +22,15 @@ const handB = document.getElementById('hand-b');
 const messageEl = document.getElementById('message');
 const yourTurnBanner = document.getElementById('your-turn-banner');
 const boardWrap = document.getElementById('board-wrap');
+const btnUndo = document.getElementById('btn-undo');
+const undoPleaEl = document.getElementById('undo-plea');
+const undoPleaFromEl = document.getElementById('undo-plea-from');
+const btnUndoAccept = document.getElementById('btn-undo-accept');
+const btnUndoDismiss = document.getElementById('btn-undo-dismiss');
+const replayBar = document.getElementById('replay-bar');
+const replaySlider = document.getElementById('replay-slider');
+const replayStep = document.getElementById('replay-step');
+const tauntLayer = document.getElementById('taunt-layer');
 const btnCreate = document.getElementById('btn-create');
 const btnJoin = document.getElementById('btn-join');
 const btnCopyInvite = document.getElementById('btn-copy-invite');
@@ -34,6 +43,7 @@ const btnRestart = document.getElementById('btn-restart');
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const inviteParam = new URLSearchParams(location.search).get('invite');
+const PLAYER_LABEL = { A: '先手', B: '后手' };
 
 const PHASE_TEXT = {
   waiting: '等待对手',
@@ -83,6 +93,11 @@ let inviteJoinPending = false;
 let gameState = null;
 let inviteUrl = '';
 let lanHint = '';
+let canUndo = false;
+let undoPleaFrom = null;
+/** @type {any[]|null} */
+let replayFrames = null;
+let replayIndex = 0;
 /** @type {{q:number,r:number}|null} */
 let selected = null;
 /** @type {Array<{q:number,r:number,color?:string}>} */
@@ -169,8 +184,69 @@ function boardOpts() {
   };
 }
 
+function displayState() {
+  if (
+    gameState?.phase === 'ended' &&
+    Array.isArray(replayFrames) &&
+    replayFrames.length > 0
+  ) {
+    const i = Math.max(0, Math.min(replayIndex, replayFrames.length - 1));
+    return replayFrames[i];
+  }
+  return gameState;
+}
+
 function redraw() {
-  drawBoard(ctx, gameState, boardOpts());
+  drawBoard(ctx, displayState(), boardOpts());
+}
+
+function spawnTauntBubble(text, fromSeat) {
+  if (!tauntLayer) return;
+  const bubble = document.createElement('div');
+  bubble.className = 'taunt-bubble';
+  if (fromSeat && seat && fromSeat !== seat) bubble.classList.add('from-them');
+  bubble.textContent = text;
+  const leftish = Math.random() < 0.5;
+  const x = leftish
+    ? 8 + Math.random() * 28
+    : 62 + Math.random() * 30;
+  const y = 55 + Math.random() * 30;
+  bubble.style.left = `${x}vw`;
+  bubble.style.top = `${y}vh`;
+  tauntLayer.appendChild(bubble);
+  bubble.addEventListener('animationend', () => bubble.remove());
+}
+
+function hideUndoPlea() {
+  if (undoPleaEl) undoPleaEl.hidden = true;
+}
+
+function showUndoPlea(from) {
+  if (!undoPleaEl) return;
+  undoPleaEl.hidden = false;
+  const label = PLAYER_LABEL[from] || from;
+  undoPleaFromEl.textContent =
+    from === seat ? '你正在求饶…等对方同意' : `${label} 正在求饶`;
+  const isTarget = Boolean(seat) && from && from !== seat;
+  btnUndoAccept.hidden = !isTarget;
+}
+
+function updateReplayUI() {
+  const ended = gameState?.phase === 'ended';
+  const frames = Array.isArray(replayFrames) ? replayFrames : [];
+  if (!ended || frames.length === 0) {
+    replayBar.hidden = true;
+    return;
+  }
+  replayBar.hidden = false;
+  // hide end overlay while scrubbing away from last frame so board is visible
+  const atEnd = replayIndex >= frames.length - 1;
+  if (endOverlay) {
+    endOverlay.hidden = !(atEnd && gameState.winner);
+  }
+  replaySlider.max = String(Math.max(0, frames.length - 1));
+  replaySlider.value = String(replayIndex);
+  replayStep.textContent = `${replayIndex + 1}/${frames.length}`;
 }
 
 function clearSelection() {
@@ -238,9 +314,23 @@ function updateStatus() {
     boardWrap.classList.toggle('is-your-turn', yourTurn);
   }
 
+  if (btnUndo) {
+    btnUndo.hidden = !(
+      (phase === 'layout' || phase === 'action') &&
+      canUndo
+    );
+  }
+
+  if (undoPleaFrom) {
+    showUndoPlea(undoPleaFrom);
+  } else {
+    hideUndoPlea();
+  }
+
   handA.textContent = `A 手棋：${gameState.hand?.A ?? '—'}`;
   handB.textContent = `B 手棋：${gameState.hand?.B ?? '—'}`;
   updateEndUI();
+  updateReplayUI();
   updateHint();
 }
 
@@ -346,6 +436,15 @@ function onAssigned(msg) {
 function onState(msg) {
   gameState = msg.state;
   if (msg.you) seat = msg.you;
+  canUndo = Boolean(msg.canUndo);
+  undoPleaFrom = msg.undoPleaFrom || null;
+  if (Array.isArray(msg.replay) && msg.replay.length > 0) {
+    replayFrames = msg.replay;
+    replayIndex = replayFrames.length - 1;
+  } else if (gameState?.phase !== 'ended') {
+    replayFrames = null;
+    replayIndex = 0;
+  }
   updateInviteUI(msg.inviteUrl);
   updateSeats(msg.seatsOccupied);
   updateLobbyPhase(gameState.phase);
@@ -399,6 +498,21 @@ ws.addEventListener('message', (ev) => {
   }
   if (msg.type === 'tunnel') {
     updateInviteUI(msg.inviteUrl);
+    return;
+  }
+  if (msg.type === 'taunt') {
+    spawnTauntBubble(msg.text, msg.from);
+    return;
+  }
+  if (msg.type === 'undoPlea') {
+    undoPleaFrom = msg.from;
+    showUndoPlea(msg.from);
+    return;
+  }
+  if (msg.type === 'undoDone') {
+    hideUndoPlea();
+    undoPleaFrom = null;
+    setMessage('对方心软了，悔了一步');
     return;
   }
   if (msg.type === 'error') {
@@ -456,6 +570,33 @@ btnStart.addEventListener('click', () => {
 btnRestart.addEventListener('click', () => {
   send({ type: 'restart' });
 });
+
+btnUndo?.addEventListener('click', () => {
+  send({ type: 'undoRequest' });
+});
+
+btnUndoAccept?.addEventListener('click', () => {
+  send({ type: 'undoAccept' });
+});
+
+btnUndoDismiss?.addEventListener('click', () => {
+  undoPleaFrom = null;
+  hideUndoPlea();
+});
+
+replaySlider?.addEventListener('input', () => {
+  replayIndex = Number(replaySlider.value) || 0;
+  updateReplayUI();
+  redraw();
+});
+
+for (const btn of document.querySelectorAll('.taunt-btn')) {
+  btn.addEventListener('click', () => {
+    const text = btn.getAttribute('data-taunt');
+    if (!text) return;
+    send({ type: 'taunt', text });
+  });
+}
 
 canvas.addEventListener('mousemove', (ev) => {
   if (!gameState || !seat) return;

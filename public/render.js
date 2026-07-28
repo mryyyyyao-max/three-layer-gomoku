@@ -1,4 +1,4 @@
-import { allCells, axialToPixel, key, neighbors } from '/shared/board.js?v=8';
+import { allCells, axialToPixel, key, neighbors } from '/shared/board.js?v=10';
 
 const BG = '#d4c7ae';
 const FILL_UP = 'rgba(92, 72, 48, 0.07)';

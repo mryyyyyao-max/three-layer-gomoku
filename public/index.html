@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>三层五子棋</title>
-  <link rel="stylesheet" href="/style.css?v=9" />
+  <link rel="stylesheet" href="/style.css?v=10" />
 </head>
 <body>
   <main class="app">
@@ -45,6 +45,7 @@
         </div>
         <div class="status-row">
           <span id="current-label">—</span>
+          <button type="button" id="btn-undo" class="btn-undo" hidden>悔棋</button>
         </div>
         <div class="status-row hands">
           <span id="hand-a">A 手棋：25</span>
@@ -54,16 +55,52 @@
         <p id="message" class="message" aria-live="polite"></p>
       </div>
       <p id="your-turn-banner" class="your-turn-banner" hidden aria-live="polite">现在轮到你了</p>
-      <div class="board-wrap" id="board-wrap">
-        <canvas id="board" width="920" height="820" aria-label="棋盘"></canvas>
-        <div id="end-overlay" class="end-overlay" hidden>
-          <p id="end-title" class="end-title"></p>
-          <p id="end-reason" class="end-reason"></p>
-          <button type="button" id="btn-restart">再来一局</button>
+
+      <div class="play-layout">
+        <aside class="taunt-rail taunt-rail-left" aria-label="左侧嘲讽">
+          <button type="button" class="taunt-btn" data-taunt="你这个臭棋篓子">你这个臭棋篓子</button>
+          <button type="button" class="taunt-btn" data-taunt="我等的花儿都谢了">我等的花儿都谢了</button>
+          <div class="taunt-sky" id="taunt-sky-left"></div>
+        </aside>
+
+        <div class="play-center">
+          <div class="board-wrap" id="board-wrap">
+            <canvas id="board" width="920" height="820" aria-label="棋盘"></canvas>
+            <div id="end-overlay" class="end-overlay" hidden>
+              <p id="end-title" class="end-title"></p>
+              <p id="end-reason" class="end-reason"></p>
+              <button type="button" id="btn-restart">再来一局</button>
+            </div>
+          </div>
+          <div id="replay-bar" class="replay-bar" hidden>
+            <label class="replay-label" for="replay-slider">复盘</label>
+            <input type="range" id="replay-slider" min="0" max="0" value="0" />
+            <span id="replay-step" class="replay-step">0/0</span>
+          </div>
         </div>
+
+        <aside class="taunt-rail taunt-rail-right" aria-label="右侧嘲讽">
+          <button type="button" class="taunt-btn" data-taunt="你这个臭棋篓子">你这个臭棋篓子</button>
+          <button type="button" class="taunt-btn" data-taunt="我等的花儿都谢了">我等的花儿都谢了</button>
+          <div class="taunt-sky" id="taunt-sky-right"></div>
+        </aside>
       </div>
     </section>
   </main>
-  <script type="module" src="/client.js?v=8"></script>
+
+  <div id="undo-plea" class="undo-plea" hidden>
+    <div class="undo-plea-card">
+      <p id="undo-plea-text" class="undo-plea-text">求你啦爸爸让让我😭</p>
+      <p id="undo-plea-from" class="undo-plea-from"></p>
+      <div class="undo-plea-actions">
+        <button type="button" id="btn-undo-accept" hidden>同意</button>
+        <button type="button" id="btn-undo-dismiss">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="taunt-layer" class="taunt-layer" aria-hidden="true"></div>
+
+  <script type="module" src="/client.js?v=10"></script>
 </body>
 </html>
