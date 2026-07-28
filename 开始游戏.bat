@@ -39,6 +39,6 @@ echo.
 echo 若规则异常：关掉本窗口后重新双击，浏览器按 Ctrl+F5 强刷
 echo.
 
-start "" "http://localhost:3000/?v=4"
+start "" "http://localhost:3000/?v=5"
 node server.js
 pause

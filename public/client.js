@@ -1,5 +1,6 @@
 import { drawBoard } from './render.js?v=5';
 import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=5';
+import { isLegalDestHeight } from '/shared/rules.js?v=5';
 
 const lobbyEl = document.getElementById('lobby');
 const gameEl = document.getElementById('game');
@@ -125,7 +126,7 @@ function legalMoveTargets(fromQ, fromR) {
   const targets = [];
   for (const n of neighbors(fromQ, fromR)) {
     const destH = gameState.cells[key(n.q, n.r)]?.length ?? 0;
-    if (destH + 1 <= 3 && destH >= startH - 1 && destH <= startH) targets.push(n);
+    if (isLegalDestHeight(startH, destH)) targets.push(n);
   }
   return targets;
 }
