@@ -198,6 +198,11 @@ function otherPlayer(player) {
   return player === 'A' ? 'B' : 'A';
 }
 
+export function isLegalDestHeight(startH, destH) {
+  if (destH + 1 > 3) return false;
+  return destH >= startH - 1 && destH <= startH;
+}
+
 export function advanceAfterLayoutPlace(state) {
   const step = LAYOUT_SCRIPT[state.layoutStep];
   state.layoutPlacedInStep += 1;
@@ -317,9 +322,10 @@ export function applyMove(state, player, fromQ, fromR, toQ, toR) {
   }
 
   const destH = toStack.length;
-  // 只移动堆顶 1 枚：二层叠二层 → 三层（合法）；已满三层不可再叠
-  if (destH + 1 > 3) {
-    return fail(state, 'stack would exceed 3');
+  const startH = fromStack.length;
+  if (!isLegalDestHeight(startH, destH)) {
+    if (destH + 1 > 3) return fail(state, 'stack would exceed 3');
+    return fail(state, 'illegal stack step');
   }
 
   const next = clone(state);

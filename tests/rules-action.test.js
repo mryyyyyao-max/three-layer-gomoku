@@ -83,3 +83,50 @@ test('reject non-integer place coords', () => {
   assert.equal(r.ok, false);
   assert.equal(r.error, 'out of board');
 });
+
+test('height-1 cannot move onto height-2', () => {
+  let s = finishLayout(startMatch(createGame()));
+  s = applyPlace(s, 'A', 2, 0).state;
+  s = applyPlace(s, 'B', 1, 0).state;
+  s = applyPlace(s, 'A', 3, 0).state;
+  s = applyPlace(s, 'B', -1, 0).state;
+  s = applyMove(s, 'A', 3, 0, 2, 0).state; // [A,A] height 2
+  s = applyPlace(s, 'B', -2, 0).state;
+  s = applyPlace(s, 'A', 2, 1).state;
+  s = applyPlace(s, 'B', -1, 1).state;
+  const r = applyMove(s, 'A', 2, 1, 2, 0);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'illegal stack step');
+});
+
+test('height-2 cannot move onto empty', () => {
+  let s = finishLayout(startMatch(createGame()));
+  s = applyPlace(s, 'A', 2, 0).state;
+  s = applyPlace(s, 'B', 1, 0).state;
+  s = applyPlace(s, 'A', 3, 0).state;
+  s = applyPlace(s, 'B', -1, 0).state;
+  s = applyMove(s, 'A', 3, 0, 2, 0).state; // height 2 at 2,0
+  s = applyPlace(s, 'B', -2, 0).state;
+  const r = applyMove(s, 'A', 2, 0, 2, 1); // 2,1 empty adjacent
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'illegal stack step');
+});
+
+test('height-3 can only move onto height-2', () => {
+  let s = finishLayout(startMatch(createGame()));
+  s = applyPlace(s, 'A', 2, 0).state;
+  s = applyPlace(s, 'B', 1, 0).state;
+  s = applyPlace(s, 'A', 3, 0).state;
+  s = applyPlace(s, 'B', -1, 0).state;
+  s = applyMove(s, 'A', 3, 0, 2, 0).state;
+  s = applyPlace(s, 'B', -2, 0).state;
+  s = applyPlace(s, 'A', 1, 1).state;
+  s = applyPlace(s, 'B', -1, 1).state;
+  s = applyMove(s, 'A', 1, 1, 1, 0).state;
+  s = applyPlace(s, 'B', -2, 1).state;
+  s = applyMove(s, 'A', 1, 0, 2, 0).state; // height 3 at 2,0
+  s = applyPlace(s, 'B', 3, 1).state;
+  const r = applyMove(s, 'A', 2, 0, 2, 1);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'illegal stack step');
+});

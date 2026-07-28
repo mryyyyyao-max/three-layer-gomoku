@@ -244,7 +244,7 @@ wss.on('connection', (ws) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`三层五子棋 listening on port ${PORT}`);
-  console.log('  Rules:   may stack onto 2-high → become 3 (top piece only)');
+  console.log('  Rules:   stack move band startH-1..startH (top piece only)');
   console.log(`  Local:   http://localhost:${PORT}`);
   const addrs = lanAddresses();
   if (addrs.length === 0) {

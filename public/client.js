@@ -1,5 +1,5 @@
-import { drawBoard } from './render.js?v=4';
-import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=4';
+import { drawBoard } from './render.js?v=5';
+import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=5';
 
 const lobbyEl = document.getElementById('lobby');
 const gameEl = document.getElementById('game');
@@ -53,6 +53,7 @@ const ERROR_MAP = {
   'top is not yours': '堆顶不是你的棋子',
   'not adjacent': '目标不相邻',
   'stack would exceed 3': '堆叠不能超过三层',
+  'illegal stack step': '只能平迁或下降一层',
   'illegal stack height': '堆叠不能超过三层',
   'cannot stack onto height 2+': '堆叠不能超过三层',
   'dest higher than start level': '堆叠不能超过三层',
@@ -120,10 +121,11 @@ function canPlaceAt(q, r) {
 function legalMoveTargets(fromQ, fromR) {
   const stack = gameState?.cells?.[key(fromQ, fromR)];
   if (!stack || stack.length === 0) return [];
+  const startH = stack.length;
   const targets = [];
   for (const n of neighbors(fromQ, fromR)) {
     const destH = gameState.cells[key(n.q, n.r)]?.length ?? 0;
-    if (destH < 3) targets.push(n);
+    if (destH + 1 <= 3 && destH >= startH - 1 && destH <= startH) targets.push(n);
   }
   return targets;
 }
