@@ -6,6 +6,7 @@ import { WebSocketServer } from 'ws';
 import os from 'node:os';
 import { createGame, startMatch, applyPlace, applyMove } from './shared/rules.js';
 import { newInviteToken, swapSeatMap } from './server/room.js';
+import { startQuickTunnel } from './server/tunnel.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 3000;
@@ -329,7 +330,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => onClose(ws));
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`三层五子棋 listening on port ${PORT}`);
   console.log('  Rules:   stack move band startH-1..startH (top piece only)');
   console.log(`  Local:   http://localhost:${PORT}`);
@@ -341,4 +342,23 @@ server.listen(PORT, '0.0.0.0', () => {
       console.log(`  LAN:     http://${ip}:${PORT}`);
     }
   }
+
+  const tunnel = await startQuickTunnel({
+    port: PORT,
+    onUrl(url) {
+      room.publicBase = url;
+      console.log(`  Public:  ${url}`);
+      for (const [seat, ws] of room.sockets) {
+        send(ws, { type: 'tunnel', publicBase: url, inviteUrl: buildInviteUrl() });
+      }
+    },
+  });
+  process.on('SIGINT', () => {
+    tunnel.stop();
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    tunnel.stop();
+    process.exit(0);
+  });
 });

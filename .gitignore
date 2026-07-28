@@ -2,3 +2,5 @@ node_modules/
 .superpowers/
 *.log
 .DS_Store
+bin/cloudflared
+bin/cloudflared.exe

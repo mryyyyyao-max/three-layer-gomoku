@@ -34,7 +34,8 @@ timeout /t 1 /nobreak >nul
 echo 正在启动三层五子棋...
 echo 本机：http://localhost:3000
 echo 队友请打开本窗口里稍后打印的局域网地址
-echo 关闭本窗口即停止游戏
+echo 也可复制稍后打印的 Public 邀请链接；好友无需安装任何软件
+echo 关闭本窗口会停止游戏和公网链接
 echo.
 echo 若规则异常：关掉本窗口后重新双击，浏览器按 Ctrl+F5 强刷
 echo.
