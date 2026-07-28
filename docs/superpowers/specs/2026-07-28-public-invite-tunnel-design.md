@@ -1,7 +1,7 @@
 # 公网邀请链接 + 座位交换 + 叠层规则修正
 
 日期：2026-07-28  
-状态：待实现
+状态：已实现（2026-07-28 静态验证 + 28/28 单元测试通过；公网 URL 未在实机启动中观测）
 
 ## 目标
 
@@ -150,11 +150,17 @@ WebSocket 已按 `location.host` 连接，公网 HTTPS 域名下可自动走 `ws
 
 ## 成功标准
 
-- [ ] 主机一键启动后能复制公网邀请链接
-- [ ] 朋友仅用浏览器打开链接即可入座后手
-- [ ] 开局前双方都能交换先手后手，再开始对局
-- [ ] 叠层统一公式成立：一层不能上二层；二层可上二层成三、不能落空地；三层只能上二层
-- [ ] 隧道失败不阻断局域网对局
+- [x] 主机一键启动后能复制公网邀请链接（`buildInviteUrl` + `#invite-box` / `#btn-copy-invite`；公网未就绪时回退 LAN origin）
+- [x] 朋友仅用浏览器打开链接即可入座后手（`/?invite=` → `join` + `inviteToken` 校验 → `ready`）
+- [x] 开局前双方都能交换先手后手，再开始对局（`swapSeats` / `start` + ready UI）
+- [x] 叠层统一公式成立：一层不能上二层；二层可上二层成三、不能落空地；三层只能上二层（`isLegalDestHeight` + `rules-action.test.js`）
+- [x] 隧道失败不阻断局域网对局（`startQuickTunnel` soft-fail + `tunnel.test.js`）
+
+### 验证备注（2026-07-28）
+
+- 测试：`node --test tests/*.test.js` → 28 pass / 0 fail（使用 Cursor agent 内置 Node v24.5.0；系统 PATH 无 Node/npm）
+- 实机启动：未观测 `Public:` 行——`node_modules` 未安装（无 npm），且 cloudflared 下载在本环境被网络拦截
+- 小缺口：规格中的 UI 文案「公网链接准备中…」「公网分享不可用」未在客户端实现；当前行为为 LAN 邀请链接立即可复制，隧道就绪后通过 `tunnel` 消息更新 URL
 
 ## 与旧规格关系
 
