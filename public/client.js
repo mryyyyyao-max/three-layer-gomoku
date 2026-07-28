@@ -1,6 +1,6 @@
-import { drawBoard } from './render.js?v=10';
-import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=10';
-import { isLegalDestHeight } from '/shared/rules.js?v=10';
+import { drawBoard } from './render.js?v=11';
+import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=11';
+import { isLegalDestHeight } from '/shared/rules.js?v=11';
 
 const lobbyEl = document.getElementById('lobby');
 const gameEl = document.getElementById('game');
@@ -31,6 +31,8 @@ const replayBar = document.getElementById('replay-bar');
 const replaySlider = document.getElementById('replay-slider');
 const replayStep = document.getElementById('replay-step');
 const tauntLayer = document.getElementById('taunt-layer');
+const railA = document.getElementById('rail-a');
+const railB = document.getElementById('rail-b');
 const btnCreate = document.getElementById('btn-create');
 const btnJoin = document.getElementById('btn-join');
 const btnCopyInvite = document.getElementById('btn-copy-invite');

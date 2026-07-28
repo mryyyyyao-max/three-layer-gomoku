@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>三层五子棋</title>
-  <link rel="stylesheet" href="/style.css?v=10" />
+  <link rel="stylesheet" href="/style.css?v=11" />
 </head>
 <body>
   <main class="app">
@@ -57,10 +57,18 @@
       <p id="your-turn-banner" class="your-turn-banner" hidden aria-live="polite">现在轮到你了</p>
 
       <div class="play-layout">
-        <aside class="taunt-rail taunt-rail-left" aria-label="左侧嘲讽">
-          <button type="button" class="taunt-btn" data-taunt="你这个臭棋篓子">你这个臭棋篓子</button>
-          <button type="button" class="taunt-btn" data-taunt="我等的花儿都谢了">我等的花儿都谢了</button>
-          <div class="taunt-sky" id="taunt-sky-left"></div>
+        <aside class="taunt-rail taunt-rail-left" id="rail-a" data-seat="A" aria-label="先手区域">
+          <div class="rail-head">
+            <span class="rail-piece rail-piece-a" aria-hidden="true"></span>
+            <div class="rail-titles">
+              <strong class="rail-name">先手</strong>
+              <span class="rail-mine" hidden>我的区域</span>
+            </div>
+          </div>
+          <div class="taunt-actions" hidden>
+            <button type="button" class="taunt-btn" data-taunt="你这个臭棋篓子">你这个臭棋篓子</button>
+            <button type="button" class="taunt-btn" data-taunt="我等的花儿都谢了">我等的花儿都谢了</button>
+          </div>
         </aside>
 
         <div class="play-center">
@@ -79,10 +87,18 @@
           </div>
         </div>
 
-        <aside class="taunt-rail taunt-rail-right" aria-label="右侧嘲讽">
-          <button type="button" class="taunt-btn" data-taunt="你这个臭棋篓子">你这个臭棋篓子</button>
-          <button type="button" class="taunt-btn" data-taunt="我等的花儿都谢了">我等的花儿都谢了</button>
-          <div class="taunt-sky" id="taunt-sky-right"></div>
+        <aside class="taunt-rail taunt-rail-right" id="rail-b" data-seat="B" aria-label="后手区域">
+          <div class="rail-head">
+            <span class="rail-piece rail-piece-b" aria-hidden="true"></span>
+            <div class="rail-titles">
+              <strong class="rail-name">后手</strong>
+              <span class="rail-mine" hidden>我的区域</span>
+            </div>
+          </div>
+          <div class="taunt-actions" hidden>
+            <button type="button" class="taunt-btn" data-taunt="你这个臭棋篓子">你这个臭棋篓子</button>
+            <button type="button" class="taunt-btn" data-taunt="我等的花儿都谢了">我等的花儿都谢了</button>
+          </div>
         </aside>
       </div>
     </section>
@@ -101,6 +117,6 @@
 
   <div id="taunt-layer" class="taunt-layer" aria-hidden="true"></div>
 
-  <script type="module" src="/client.js?v=10"></script>
+  <script type="module" src="/client.js?v=11"></script>
 </body>
 </html>

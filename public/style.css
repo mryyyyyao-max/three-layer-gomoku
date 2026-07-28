@@ -178,6 +178,75 @@ button:disabled {
   gap: 0.55rem;
   position: sticky;
   top: 0.75rem;
+  padding: 0.75rem;
+  background: color-mix(in srgb, var(--panel) 90%, white);
+  border: 1px solid rgba(80, 55, 30, 0.14);
+  border-radius: 12px;
+  min-height: 180px;
+}
+
+.taunt-rail.is-mine {
+  border-color: rgba(181, 106, 40, 0.55);
+  box-shadow: 0 0 0 1px rgba(181, 106, 40, 0.2);
+  background: color-mix(in srgb, #fff4e4 70%, var(--panel));
+}
+
+.rail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.rail-piece {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.18),
+    0 2px 4px rgba(40, 28, 16, 0.2);
+}
+
+.rail-piece-a {
+  background: radial-gradient(circle at 35% 30%, #6a4a32, #3f2c1d 70%);
+  border: 1px solid #24180f;
+}
+
+.rail-piece-b {
+  background: radial-gradient(circle at 35% 30%, #fffcf7, #e8dcc8 75%);
+  border: 1px solid #b9a890;
+}
+
+.rail-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.rail-name {
+  font-size: 0.98rem;
+}
+
+.rail-mine {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #8a5a2b;
+}
+
+.rail-mine[hidden] {
+  display: none;
+}
+
+.taunt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+.taunt-actions[hidden] {
+  display: none;
 }
 
 .taunt-btn {
@@ -196,10 +265,6 @@ button:disabled {
 
 .taunt-btn:hover {
   background: var(--btn-hover);
-}
-
-.taunt-sky {
-  display: none;
 }
 
 .taunt-layer {
@@ -365,6 +430,9 @@ button:disabled {
 
   .taunt-rail {
     position: static;
+  }
+
+  .taunt-actions {
     flex-direction: row;
     flex-wrap: wrap;
   }
