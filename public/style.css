@@ -202,9 +202,32 @@ button:disabled {
   font-size: 0.95rem;
 }
 
+.your-turn-banner {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 1rem;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #5a3a1c;
+  background: color-mix(in srgb, var(--accent, #c47a3a) 22%, #fff8ee);
+  border: 1px solid color-mix(in srgb, var(--accent, #c47a3a) 45%, transparent);
+  border-radius: 10px;
+  animation: turn-breathe 1.6s ease-in-out infinite;
+}
+
+.your-turn-banner[hidden] {
+  display: none;
+}
+
 .board-wrap {
   position: relative;
   max-width: 920px;
+  border-radius: 12px;
+}
+
+.board-wrap.is-your-turn {
+  animation: board-turn-glow 1.6s ease-in-out infinite;
 }
 
 #board {
@@ -216,6 +239,43 @@ button:disabled {
   border: 2px solid var(--board-frame);
   border-radius: 12px;
   cursor: pointer;
+}
+
+@keyframes turn-breathe {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes board-turn-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #c47a3a) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #c47a3a) 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .your-turn-banner,
+  .board-wrap.is-your-turn {
+    animation: none;
+  }
+
+  .your-turn-banner {
+    opacity: 1;
+  }
+
+  .board-wrap.is-your-turn {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #c47a3a) 50%, transparent);
+  }
 }
 
 .end-overlay {

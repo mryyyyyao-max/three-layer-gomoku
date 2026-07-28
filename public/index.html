@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>三层五子棋</title>
-  <link rel="stylesheet" href="/style.css?v=7" />
+  <link rel="stylesheet" href="/style.css?v=8" />
 </head>
 <body>
   <main class="app">
@@ -53,7 +53,8 @@
         <p id="hint-label" class="hint-label"></p>
         <p id="message" class="message" aria-live="polite"></p>
       </div>
-      <div class="board-wrap">
+      <p id="your-turn-banner" class="your-turn-banner" hidden aria-live="polite">现在轮到你了</p>
+      <div class="board-wrap" id="board-wrap">
         <canvas id="board" width="920" height="820" aria-label="棋盘"></canvas>
         <div id="end-overlay" class="end-overlay" hidden>
           <p id="end-title" class="end-title"></p>
@@ -63,6 +64,6 @@
       </div>
     </section>
   </main>
-  <script type="module" src="/client.js?v=7"></script>
+  <script type="module" src="/client.js?v=8"></script>
 </body>
 </html>

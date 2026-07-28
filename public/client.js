@@ -1,6 +1,6 @@
-import { drawBoard } from './render.js?v=7';
-import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=7';
-import { isLegalDestHeight } from '/shared/rules.js?v=7';
+import { drawBoard } from './render.js?v=8';
+import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=8';
+import { isLegalDestHeight } from '/shared/rules.js?v=8';
 
 const lobbyEl = document.getElementById('lobby');
 const gameEl = document.getElementById('game');
@@ -20,6 +20,8 @@ const hintLabel = document.getElementById('hint-label');
 const handA = document.getElementById('hand-a');
 const handB = document.getElementById('hand-b');
 const messageEl = document.getElementById('message');
+const yourTurnBanner = document.getElementById('your-turn-banner');
+const boardWrap = document.getElementById('board-wrap');
 const btnCreate = document.getElementById('btn-create');
 const btnJoin = document.getElementById('btn-join');
 const btnCopyInvite = document.getElementById('btn-copy-invite');
@@ -223,6 +225,17 @@ function updateStatus() {
         : `当前：${PLAYER_TEXT[gameState.current] || gameState.current}`;
   } else {
     currentLabel.textContent = '—';
+  }
+
+  const yourTurn =
+    Boolean(seat) &&
+    (phase === 'layout' || phase === 'action') &&
+    gameState.current === seat;
+  if (yourTurnBanner) {
+    yourTurnBanner.hidden = !yourTurn;
+  }
+  if (boardWrap) {
+    boardWrap.classList.toggle('is-your-turn', yourTurn);
   }
 
   handA.textContent = `A 手棋：${gameState.hand?.A ?? '—'}`;
