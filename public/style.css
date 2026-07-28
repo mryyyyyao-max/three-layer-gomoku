@@ -84,6 +84,55 @@ button:disabled {
   color: var(--muted);
 }
 
+.seats {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.seat {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(80, 55, 30, 0.12);
+}
+
+.seat-label {
+  color: var(--muted);
+}
+
+.seat-who {
+  font-weight: 600;
+}
+
+.invite-box,
+.ready-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.invite-box input {
+  min-width: min(100%, 24rem);
+  flex: 1 1 16rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(80, 55, 30, 0.18);
+  border-radius: 8px;
+  background: #fffaf1;
+  color: var(--text);
+  font: inherit;
+}
+
+.invite-hint {
+  flex-basis: 100%;
+  margin: 0;
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .lan-hint {
   margin: 0.5rem 0 0;
   color: var(--accent);

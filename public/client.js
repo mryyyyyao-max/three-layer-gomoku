@@ -1,10 +1,17 @@
-import { drawBoard } from './render.js?v=5';
-import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=5';
-import { isLegalDestHeight } from '/shared/rules.js?v=5';
+import { drawBoard } from './render.js?v=6';
+import { allCells, axialToPixel, key, neighbors, isCenter } from '/shared/board.js?v=6';
+import { isLegalDestHeight } from '/shared/rules.js?v=6';
 
 const lobbyEl = document.getElementById('lobby');
 const gameEl = document.getElementById('game');
 const lobbyStatus = document.getElementById('lobby-status');
+const seatsEl = document.getElementById('seats');
+const seatAWho = document.getElementById('seat-a-who');
+const seatBWho = document.getElementById('seat-b-who');
+const inviteBox = document.getElementById('invite-box');
+const inviteUrlInput = document.getElementById('invite-url');
+const inviteHint = document.getElementById('invite-hint');
+const readyActions = document.getElementById('ready-actions');
 const lanHintEl = document.getElementById('lan-hint');
 const phaseLabel = document.getElementById('phase-label');
 const youLabel = document.getElementById('you-label');
@@ -15,12 +22,16 @@ const handB = document.getElementById('hand-b');
 const messageEl = document.getElementById('message');
 const btnCreate = document.getElementById('btn-create');
 const btnJoin = document.getElementById('btn-join');
+const btnCopyInvite = document.getElementById('btn-copy-invite');
+const btnSwap = document.getElementById('btn-swap');
+const btnStart = document.getElementById('btn-start');
 const endOverlay = document.getElementById('end-overlay');
 const endTitle = document.getElementById('end-title');
 const endReason = document.getElementById('end-reason');
 const btnRestart = document.getElementById('btn-restart');
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
+const inviteParam = new URLSearchParams(location.search).get('invite');
 
 const PHASE_TEXT = {
   waiting: '等待对手',
@@ -63,7 +74,11 @@ const ERROR_MAP = {
 const BOARD_SIZE = 44;
 
 let seat = null;
+let isHost = false;
+let creatingRoom = false;
 let gameState = null;
+let inviteUrl = '';
+let lanHint = '';
 /** @type {{q:number,r:number}|null} */
 let selected = null;
 /** @type {Array<{q:number,r:number,color?:string}>} */
@@ -215,7 +230,47 @@ function updateStatus() {
 }
 
 function showGame() {
+  lobbyEl.hidden = true;
   gameEl.hidden = false;
+}
+
+function showLobby() {
+  lobbyEl.hidden = false;
+  gameEl.hidden = true;
+}
+
+function updateInviteUI(url) {
+  if (url !== undefined && url !== inviteUrl) {
+    inviteUrl = url || '';
+    inviteHint.textContent = '';
+  }
+  const canInvite = isHost && Boolean(inviteUrl);
+  inviteBox.hidden = !canInvite;
+  if (canInvite) inviteUrlInput.value = inviteUrl;
+
+  lanHintEl.hidden = !lanHint || canInvite;
+  lanHintEl.textContent = lanHint ? `局域网地址：${lanHint}` : '';
+}
+
+function updateSeats(seatsOccupied = {}) {
+  seatsEl.hidden = false;
+  const who = (seatName) => {
+    if (!seatsOccupied[seatName]) return '空';
+    return seatName === seat ? '你' : '对手';
+  };
+  seatAWho.textContent = who('A');
+  seatBWho.textContent = who('B');
+}
+
+function updateLobbyPhase(phase) {
+  const isLobbyPhase = phase === 'waiting' || phase === 'ready';
+  if (isLobbyPhase) {
+    showLobby();
+    readyActions.hidden = phase !== 'ready';
+    return;
+  }
+  readyActions.hidden = true;
+  showGame();
 }
 
 function hitTest(clientX, clientY, maxDistFactor = 0.48) {
@@ -256,22 +311,25 @@ function selectPiece(q, r) {
 
 function onAssigned(msg) {
   seat = msg.seat;
+  isHost ||= creatingRoom && seat === 'A';
+  creatingRoom = false;
   if (msg.lanHint) {
-    lanHintEl.hidden = false;
-    lanHintEl.textContent = `局域网地址：${msg.lanHint}`;
+    lanHint = msg.lanHint;
   }
+  updateInviteUI(msg.inviteUrl);
   lobbyStatus.textContent =
     seat === 'A' ? '已创建房间，等待对手…' : '已加入房间';
   btnCreate.disabled = true;
   btnJoin.disabled = true;
-  showGame();
+  if (gameState) updateLobbyPhase(gameState.phase);
 }
 
 function onState(msg) {
   gameState = msg.state;
   if (msg.you) seat = msg.you;
-  showGame();
-  if (gameState.phase !== 'waiting') lobbyEl.hidden = true;
+  updateInviteUI(msg.inviteUrl);
+  updateSeats(msg.seatsOccupied);
+  updateLobbyPhase(gameState.phase);
   clearSelection();
   hoverCell = null;
   updateStatus();
@@ -284,6 +342,12 @@ ws.addEventListener('open', () => {
   lobbyStatus.textContent = '已连接。请创建或加入房间。';
   btnCreate.disabled = false;
   btnJoin.disabled = false;
+  if (inviteParam) {
+    lobbyStatus.textContent = '正在通过邀请链接加入房间…';
+    btnCreate.disabled = true;
+    btnJoin.disabled = true;
+    send({ type: 'join', inviteToken: inviteParam });
+  }
 });
 
 ws.addEventListener('close', () => {
@@ -313,6 +377,10 @@ ws.addEventListener('message', (ev) => {
     onState(msg);
     return;
   }
+  if (msg.type === 'tunnel') {
+    updateInviteUI(msg.inviteUrl);
+    return;
+  }
   if (msg.type === 'error') {
     showError(msg.message || '操作失败');
   }
@@ -331,12 +399,33 @@ btnJoin.disabled = true;
 
 btnCreate.addEventListener('click', () => {
   setMessage('');
+  creatingRoom = true;
   send({ type: 'create' });
 });
 
 btnJoin.addEventListener('click', () => {
   setMessage('');
   send({ type: 'join' });
+});
+
+btnCopyInvite.addEventListener('click', async () => {
+  if (!inviteUrl) return;
+  try {
+    await navigator.clipboard.writeText(inviteUrl);
+    inviteHint.textContent = '邀请链接已复制';
+  } catch {
+    inviteUrlInput.focus();
+    inviteUrlInput.select();
+    inviteHint.textContent = '请手动复制邀请链接';
+  }
+});
+
+btnSwap.addEventListener('click', () => {
+  send({ type: 'swapSeats' });
+});
+
+btnStart.addEventListener('click', () => {
+  send({ type: 'start' });
 });
 
 btnRestart.addEventListener('click', () => {
