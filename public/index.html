@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>三层五子棋</title>
+  <link rel="stylesheet" href="/style.css?v=4" />
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>三层五子棋</h1>
+      <p class="subtitle">点空位落子 · 点己方棋子移动</p>
+    </header>
+
+    <section id="lobby" class="lobby">
+      <div class="lobby-actions">
+        <button type="button" id="btn-create">创建房间</button>
+        <button type="button" id="btn-join">加入房间</button>
+      </div>
+      <p id="lobby-status" class="lobby-status">连接中…</p>
+      <p id="lan-hint" class="lan-hint" hidden></p>
+    </section>
+
+    <section id="game" class="game" hidden>
+      <div class="status-bar">
+        <div class="status-row">
+          <span id="phase-label">—</span>
+          <span id="you-label"></span>
+        </div>
+        <div class="status-row">
+          <span id="current-label">—</span>
+        </div>
+        <div class="status-row hands">
+          <span id="hand-a">A 手棋：25</span>
+          <span id="hand-b">B 手棋：25</span>
+        </div>
+        <p id="hint-label" class="hint-label"></p>
+        <p id="message" class="message" aria-live="polite"></p>
+      </div>
+      <div class="board-wrap">
+        <canvas id="board" width="920" height="820" aria-label="棋盘"></canvas>
+        <div id="end-overlay" class="end-overlay" hidden>
+          <p id="end-title" class="end-title"></p>
+          <p id="end-reason" class="end-reason"></p>
+          <button type="button" id="btn-restart">再来一局</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/client.js?v=4"></script>
+</body>
+</html>
