@@ -35,6 +35,7 @@ const inviteParam = new URLSearchParams(location.search).get('invite');
 
 const PHASE_TEXT = {
   waiting: '等待对手',
+  ready: '准备开局',
   layout: '布局阶段',
   action: '行动阶段',
   ended: '对局结束',
@@ -76,6 +77,7 @@ const BOARD_SIZE = 44;
 let seat = null;
 let isHost = false;
 let creatingRoom = false;
+let inviteJoinPending = false;
 let gameState = null;
 let inviteUrl = '';
 let lanHint = '';
@@ -267,6 +269,9 @@ function updateLobbyPhase(phase) {
   if (isLobbyPhase) {
     showLobby();
     readyActions.hidden = phase !== 'ready';
+    if (phase === 'ready') {
+      lobbyStatus.textContent = '双方到齐，可以交换座位或开始对局';
+    }
     return;
   }
   readyActions.hidden = true;
@@ -313,6 +318,7 @@ function onAssigned(msg) {
   seat = msg.seat;
   isHost ||= creatingRoom && seat === 'A';
   creatingRoom = false;
+  inviteJoinPending = false;
   if (msg.lanHint) {
     lanHint = msg.lanHint;
   }
@@ -346,6 +352,7 @@ ws.addEventListener('open', () => {
     lobbyStatus.textContent = '正在通过邀请链接加入房间…';
     btnCreate.disabled = true;
     btnJoin.disabled = true;
+    inviteJoinPending = true;
     send({ type: 'join', inviteToken: inviteParam });
   }
 });
@@ -382,6 +389,11 @@ ws.addEventListener('message', (ev) => {
     return;
   }
   if (msg.type === 'error') {
+    if (inviteJoinPending) {
+      inviteJoinPending = false;
+      btnCreate.disabled = false;
+      btnJoin.disabled = false;
+    }
     showError(msg.message || '操作失败');
   }
 });
