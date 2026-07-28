@@ -202,17 +202,31 @@ function redraw() {
   drawBoard(ctx, displayState(), boardOpts());
 }
 
+function updateSeatRails() {
+  for (const rail of [railA, railB]) {
+    if (!rail) continue;
+    const railSeat = rail.dataset.seat;
+    const mine = Boolean(seat) && seat === railSeat;
+    rail.classList.toggle('is-mine', mine);
+    const mineLabel = rail.querySelector('.rail-mine');
+    const actions = rail.querySelector('.taunt-actions');
+    if (mineLabel) mineLabel.hidden = !mine;
+    if (actions) actions.hidden = !mine;
+  }
+}
+
 function spawnTauntBubble(text, fromSeat) {
   if (!tauntLayer) return;
   const bubble = document.createElement('div');
   bubble.className = 'taunt-bubble';
   if (fromSeat && seat && fromSeat !== seat) bubble.classList.add('from-them');
   bubble.textContent = text;
-  const leftish = Math.random() < 0.5;
-  const x = leftish
-    ? 8 + Math.random() * 28
-    : 62 + Math.random() * 30;
-  const y = 55 + Math.random() * 30;
+  // 先手从左侧飘，后手从右侧飘
+  const fromLeft = fromSeat !== 'B';
+  const x = fromLeft
+    ? 6 + Math.random() * 22
+    : 68 + Math.random() * 24;
+  const y = 52 + Math.random() * 28;
   bubble.style.left = `${x}vw`;
   bubble.style.top = `${y}vh`;
   tauntLayer.appendChild(bubble);
@@ -432,6 +446,7 @@ function onAssigned(msg) {
     seat === 'A' ? '已创建房间，等待对手…' : '已加入房间';
   btnCreate.disabled = true;
   btnJoin.disabled = true;
+  updateSeatRails();
   if (gameState) updateLobbyPhase(gameState.phase);
 }
 
@@ -452,6 +467,7 @@ function onState(msg) {
   updateLobbyPhase(gameState.phase);
   clearSelection();
   hoverCell = null;
+  updateSeatRails();
   updateStatus();
   redraw();
 }
